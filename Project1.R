@@ -40,26 +40,45 @@ atuact_2014 <- read.csv("/Users/christopherkaufmann/Datasets/Time Use Survey/Dat
 atuact_2015 <- read.csv("/Users/christopherkaufmann/Datasets/Time Use Survey/DataSciencePort/atusact_2015/atusact_2015.dat")
 
 #Appending Datasets with dplyr
-install.packages("dplyr")
+#install.packages("dplyr")
 library(dplyr)
 atus_allyears <- bind_rows(atuact_2003, atuact_2004, atuact_2005, atuact_2006, atuact_2007, atuact_2008, atuact_2009, atuact_2010, atuact_2011, atuact_2012, atuact_2013, atuact_2014, atuact_2015, .id = "year")
 atus_allyears <- filter(.data = atus_allyears, TUTIER1CODE == 1 & TUTIER2CODE == 1)
 atus_allyears <- select(.data = atus_allyears, matches("TUSTARTTIM"), matches("TUSTOPTIME"), matches("year"), matches("TUCASEID"), matches("TUACTDUR"))
 
 #Using packge chron to turn times (stored at string) to times (stored as times)
-install.packages("chron")
+#install.packages("chron")
 library(chron)
 atus_allyears$TUSTARTTIM <- chron(times = atus_allyears$TUSTARTTIM)
 atus_allyears$TUSTOPTIME <- chron(times = atus_allyears$TUSTOPTIME)
 
-#deleting records where TUSTARTTIM is 4:00:00
-atus_allyears <- filter(.data = atus_allyears, atus_allyears$TUSTARTTIM != times("04:00:00"))
+#The ATUS was weird in that it started times at 4am, so I need to get the records that are the highest in each group. Will use dplyr.
+atus_allyears <- atus_allyears %>% group_by(TUCASEID) %>% top_n(1, TUSTARTTIM)
+summary(atus_allyears$TUSTARTTIM)
+
+#There are some people who didn't go to sleep until after 4am, so I am going to just take those folks out...
+atus_allyears <- filter(.data = atus_allyears, TUSTARTTIM != times("04:00:00")) # Lost 26,000 records but oh well... It's all about the Big T!
+
+#Checking how many records per year:
+table(atus_allyears$year)
+
+#Creating data frame that creates the mean by each year:
+atus_allyears$year <- as.numeric(atus_allyears$year) # Making year numeric... for some reason was string.
+timeseries <- summarise(group_by(atus_allyears, year), mean(TUSTARTTIM, na.rm = TRUE))
+
+#Graph:
+plot(timeseries$year, timeseries$`mean(TUSTARTTIM, na.rm = TRUE)`)
+
+#Why is it going down? (e.g., people are going to bed earlier???)
+#Maybe it is because I deleted all those people who were night owls? (didn't sleep until later?)
+
+#Let me try this with keeping those 4am'ers.
 
 #Now visualizing the to bed times:
-install.packages("ggplot2")
+#install.packages("ggplot2")
 library(ggplot2)
 atus_allyears$linenum <- seq.int(nrow(atus_allyears))
-plot(atus_allyears$TUSTARTTIM, atus_allyears$linenum)
+plot(atus_allyears$TUSTARTTIM, atus_allyears$linenum, groups = atus_allyears$year)
 
 atus_allyears <- atus_allyears[order(atus_allyears$year),]
 atus_allyears %>% group_by(year) %>% summarise(avg = mean(TUSTARTTIM))
