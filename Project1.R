@@ -44,18 +44,22 @@ install.packages("dplyr")
 library(dplyr)
 atus_allyears <- bind_rows(atuact_2003, atuact_2004, atuact_2005, atuact_2006, atuact_2007, atuact_2008, atuact_2009, atuact_2010, atuact_2011, atuact_2012, atuact_2013, atuact_2014, atuact_2015, .id = "year")
 atus_allyears <- filter(.data = atus_allyears, TUTIER1CODE == 1 & TUTIER2CODE == 1)
-atus_allyears <- select(.data = atus_allyears, matches("TUSTARTTIM"), matches("TUSTOPTIME"), matches("year"), matches("TUCASEID"))
-atus_first100 <- atus_allyears[0:100,]
-  
+atus_allyears <- select(.data = atus_allyears, matches("TUSTARTTIM"), matches("TUSTOPTIME"), matches("year"), matches("TUCASEID"), matches("TUACTDUR"))
+
 #Using packge chron to turn times (stored at string) to times (stored as times)
 install.packages("chron")
 library(chron)
 atus_allyears$TUSTARTTIM <- chron(times = atus_allyears$TUSTARTTIM)
 atus_allyears$TUSTOPTIME <- chron(times = atus_allyears$TUSTOPTIME)
 
+#deleting records where TUSTARTTIM is 4:00:00
+atus_allyears <- filter(.data = atus_allyears, atus_allyears$TUSTARTTIM != times("04:00:00"))
+
 #Now visualizing the to bed times:
 install.packages("ggplot2")
 library(ggplot2)
 atus_allyears$linenum <- seq.int(nrow(atus_allyears))
-plot(atus_first100$TUSTARTTIM, atus_first100$linenum)
+plot(atus_allyears$TUSTARTTIM, atus_allyears$linenum)
 
+atus_allyears <- atus_allyears[order(atus_allyears$year),]
+atus_allyears %>% group_by(year) %>% summarise(avg = mean(TUSTARTTIM))
