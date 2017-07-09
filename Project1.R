@@ -74,6 +74,21 @@ plot(timeseries$year, timeseries$`mean(TUSTARTTIM, na.rm = TRUE)`)
 
 #Let me try this with keeping those 4am'ers.
 
+#OK... it goes up now? I think we need to check to see whether there is an increase in "Super Night Owls". Let's look at percentage:
+atus_allyears$nightowl[which(atus_allyears$TUSTARTTIM == times("04:00:00"))] <- 1
+atus_allyears$nightowl[which(is.na(atus_allyears$nightowl))] <- 0
+
+#Checking proportions, and then checking by year
+mytable <- table(atus_allyears$year, atus_allyears$nightowl)
+prop.table(mytable, 1)
+model <- glm(nightowl ~ year, family=binomial(link='logit'), data=atus_allyears)
+model
+
+#How about the tech geeks???
+#Stratifying by those who spend <2, 3-6, 7+ hours on computer?
+
+
+
 #Now visualizing the to bed times:
 #install.packages("ggplot2")
 library(ggplot2)
